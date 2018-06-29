@@ -4,6 +4,7 @@
 %\usepackage[parfill]{parskip}    % Activate to begin paragraphs with an empty line rather than an indent
 \usepackage{graphicx}
 %\usepackage{amssymb}
+\usepackage{amsmath}
 \usepackage{epstopdf}
 \usepackage{natbib}
 \usepackage{doi}
@@ -11,6 +12,7 @@
 \usetikzlibrary{arrows,decorations.markings}
 \bibliographystyle{plainnat}
 \DeclareGraphicsRule{.tif}{png}{.png}{`convert #1 `dirname #1`/`basename #1 .tif`.png}
+\newcommand{\code}[1]{\mbox{\bf#1}}
 
 \title{Regional MOM6}
 \author{Kate Hedstrom \and Alistair Adcroft \and Robert Hallberg
@@ -175,7 +177,7 @@ The original \citet{Flather76} algorithm is:
 The implementation used in MOM6 starts by finding a nondimensional
 wave speed:
 \begin{equation}
-  C = {dt \over dx} \sqrt{gH}
+  C = \frac{dt}{dx} \sqrt{gH}
 \end{equation}
 then applying it to find an estimate of $\overline{u}$ and $\eta$ at the boundary.
 If the boundary is at $i$ and we have an eastern boundary:
