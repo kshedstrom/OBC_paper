@@ -14,7 +14,7 @@
 
 \title{Regional MOM6}
 \author{Kate Hedstrom \and Alistair Adcroft \and Robert Hallberg
-\and Enrique Curchitser}
+\and Matt Harrison \and Maria Aristizabal \and Enrique Curchitser}
 \date{}                                           % Activate to display a given date or no date
 
 \begin{document}
@@ -159,9 +159,9 @@ knows both the barotropic velocity and the barotropic transport
 through the OBC segments and can simply set them accordingly.
 For a segment running north-south, one sets the $u$-velocity:
 \begin{equation}
-  \overline{u}_{\rm seg} = \overline{u}_{\rm ext}
+  \overline{u}_{i} = \overline{u}_{\rm ext}
 \end{equation}
-and the matching transport ($\overline{u}_{\rm seg} H dy$),
+and the matching transport ($\overline{u} H dy$),
 where $H$ is the total water depth and $dy$ is the meridional grid
 spacing.
 
@@ -199,7 +199,72 @@ with $\beta > 0.05$ often set to 0.2.
 
 \subsection{Baroclinic normal velocity}
 \subsubsection{Specified}
+Much like the barotropic option, one simply sets the normal flow
+and the normal transport:
+\begin{equation}
+  u_{i} = u_{\rm ext}
+\end{equation}
+and the matching transport ($u h dy$),
+where $h$ is the layer depth and $dy$ is the meridional grid
+spacing.
+
+\subsubsection{Gradient}
+Setting the gradient to zero at the boundary requires no
+external values:
+\begin{equation}
+  u_{i} = u_{i-1}
+\end{equation}
+
 \subsubsection{Radiation}
+In realistic domains, open boundary conditions can be extremely
+difficult to get right. There are situations in which incoming flow and
+outgoing flow happen along the same boundary or even at different
+depths at the same horizontal location. \citet{Orlanski76}
+proposed a radiation scheme in which a local normal phase velocity is
+computed and used to radiate things out (if it is indeed going out).
+This works well for a wave propagating normal to the boundary, but
+has problems when waves approach the boundary at an angle.
+\citet{Raymond84} have modified the scheme to account for
+propagation in all three directions. In ROMS, only the two horizontal
+directions are accounted for (with the recommended \code{RADIATION\_2D}
+option):
+\begin{equation}
+   \frac{\partial \phi}{\partial t} = - \left( \phi_\xi \frac{\partial
+   \phi}{\partial \xi} + \phi_\eta \frac{\partial \phi}{\partial \eta}) \right)
+\label{eqrk}
+\end{equation}
+where
+\begin{align}
+  \phi_\xi & = \frac{F \frac{\partial \phi}{\partial \xi}}{
+  \left( \frac{\partial \phi}{\partial \xi} \right)^2 +
+  \left( \frac{\partial \phi}{\partial \eta} \right)^2 } \\ 
+  \phi_\eta & = \frac{F \frac{\partial \phi}{\partial \eta}}{
+  \left( \frac{\partial \phi}{\partial \xi} \right)^2 +
+  \left( \frac{\partial \phi}{\partial \eta} \right)^2 } \\ 
+   F & = - \frac{\partial \phi}{\partial t}
+\end{align}
+These terms are evaluated at the closest interior point in a manner
+consistent with the time stepping scheme used. The phase velocities are
+limited so that the local Courant-Friedrichs-Lewy (CFL) condition
+is satisfied. They are then
+applied to the boundary point using equation (\ref{eqrk}), again using
+a consistent time stepping scheme. Raymond and Kuo give the form used
+for centered differencing and a leapfrog time step while ROMS uses
+one-sided differences.
+
+The radiation approach is appropriate for waves leaving the domain. A
+check is made to see which way the phase velocity is headed. If it
+is entering the domain, a zero gradient condition is applied unless
+an additional nudging option is also specified as described below.
+
+\subsubsection{Mixed radiation-nudging boundary condition}
+As described in \citep{Marchesiello2001}, ROMS has an option for providing
+radiation conditions on outflow and nudging to a known exterior
+value on inflow. This is implemented as a variation on the radiation
+condition, requiring two timescales: the inflow nudging timescale and the
+outflow nudging timescale. These timescales are provided in the input to
+ROMS (\S\ref{ASCII_in}).
+
 \subsection{Tangential velocity}
 \subsubsection{Vorticity}
 \subsubsection{Strain}
