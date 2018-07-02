@@ -163,7 +163,7 @@ For a segment running north-south, one sets the $u$-velocity:
 \begin{equation}
   \overline{u}_{i} = \overline{u}_{\rm ext}
 \end{equation}
-and the matching transport ($\overline{u} H dy$),
+and the matching transport ($\overline{u} \, H dy$),
 where $H$ is the total water depth and $dy$ is the meridional grid
 spacing.
 
@@ -206,16 +206,17 @@ and the normal transport:
 \begin{equation}
   u_{i} = u_{\rm ext}
 \end{equation}
-and the matching transport ($u h dy$),
+and the matching transport ($u \, h \, dy$),
 where $h$ is the layer depth and $dy$ is the meridional grid
 spacing.
 
-\subsubsection{Gradient}
-Setting the gradient to zero at the boundary requires no
-external values:
-\begin{equation}
-  u_{i} = u_{i-1}
-\end{equation}
+%[Maybe not necessary to include here.]
+%\subsubsection{Gradient}
+%Setting the gradient to zero at the boundary requires no
+%external values:
+%\begin{equation}
+%  u_{i} = u_{i-1}
+%\end{equation}
 
 \subsubsection{Radiation}
 In realistic domains, open boundary conditions can be extremely
@@ -265,7 +266,7 @@ radiation conditions on outflow and nudging to a known exterior
 value on inflow. This is implemented as a variation on the radiation
 condition, requiring two timescales: the inflow nudging timescale and the
 outflow nudging timescale. These timescales are provided in the input to
-ROMS (\S\ref{ASCII_in}).
+MOM6.
 
 \subsection{Tangential velocity}
 \subsubsection{Vorticity}
