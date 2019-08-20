@@ -28,10 +28,10 @@ Adding and evaluating open boundary conditions (OBCs) in MOM6.
 \section{Methods}
 
 The goal of this project is to add open boundary conditions (OBCs)
-to MOM6 such that it can be used as a regional model. The open
-boundaries can be placed anywhere on the model grid between q-points
+to MOM6 such that it can be used as a regional ocean model. The open
+boundaries can be placed anywhere on the model grid between $q$-points
 on the Arakawa C grid, including but not limited to the domain
-boundaries.  In fact, is is possible to create a staircase of open
+boundaries.  In fact, it is possible to create a staircase of open
 boundary segments at an angle through the domain, such as seen in
 Figure \ref{fdomain}. In order to support this feature, it is
 necessary that nothing outside of the open boundary be used in the
@@ -210,50 +210,65 @@ and the matching transport ($u \, h \, dy$),
 where $h$ is the layer depth and $dy$ is the meridional grid
 spacing.
 
-%\subsubsection{Gradient}
-%Setting the gradient to zero at the boundary requires no
-%external values:
-%\begin{equation}
-%  u_{i} = u_{i-1}
-%\end{equation}
+\subsubsection{Gradient}
+Setting the gradient to zero at the boundary requires no external values:
+\begin{equation}
+  u_{i} = u_{i-1}
+\end{equation}
+
+\subsubsection{Periodic}
+MOM6 was designed to be used as a global model and in fact has
+periodicity in the $x$-direction on by default. There is a flag to
+turn it off.
 
 \subsubsection{Radiation}
-[Stolen from the ROMS manual - will fix up]
+\label{S_rad}
 In realistic domains, open boundary conditions can be extremely
 difficult to get right. There are situations in which incoming flow and
 outgoing flow happen along the same boundary or even at different
 depths at the same horizontal location. \citet{Orlanski76}
 proposed a radiation scheme in which a local normal phase velocity is
-computed and used to radiate things out (if it is indeed going out).
-This works well for a wave propagating normal to the boundary, but
+computed. We begin by computing a non-dimensional phase speed:
+\begin{equation}
+  C = \frac{u^n_{i-1} - u^{n+1}_{i-1}}{u^{n+1}_{i-1} - u^{n+1}_{i-2}}
+\end{equation}
+then applying limiters and a time-average to it:
+\begin{align}
+  C &= \max(C, 0.0) \\
+  C &= \min(C, C_{\max}) \\
+  C &= (1 - \gamma) * C^{n-1} + \gamma * C
+\end{align}
+Here, $C_{\max}$ and $\gamma$ can be set at run time, but have default
+values of 10 and 0.3, respectively. The resulting phase speed is
+used to update the boundary velocity:
+\begin{equation}
+   u_{i} = \frac{u_{i} + C * u_{i-1}}{1 + C}
+\label{eqorl}
+\end{equation}
+
+\subsubsection{Oblique}
+The Orlanski scheme works for a wave propagating normal to the boundary, but
 has problems when waves approach the boundary at an angle.
 \citet{Raymond84} have modified the scheme to account for
-propagation in all three directions. In ROMS, only the two horizontal
-directions are accounted for (with the recommended \code{RADIATION\_2D}
-option):
-\begin{equation}
-   \frac{\partial \phi}{\partial t} = - \left( \phi_\xi \frac{\partial
-   \phi}{\partial \xi} + \phi_\eta \frac{\partial \phi}{\partial \eta}) \right)
-\label{eqrk}
-\end{equation}
-where
+propagation in all three directions. In MOM6, only the two horizontal
+directions are accounted for. We start by computing these terms:
 \begin{align}
-  \phi_\xi & = \frac{F \frac{\partial \phi}{\partial \xi}}{
-  \left( \frac{\partial \phi}{\partial \xi} \right)^2 +
-  \left( \frac{\partial \phi}{\partial \eta} \right)^2 } \\ 
-  \phi_\eta & = \frac{F \frac{\partial \phi}{\partial \eta}}{
-  \left( \frac{\partial \phi}{\partial \xi} \right)^2 +
-  \left( \frac{\partial \phi}{\partial \eta} \right)^2 } \\ 
-   F & = - \frac{\partial \phi}{\partial t}
+  C_x &= \frac{(u^n_{i-1,j} - u^{n+1}_{i-1,j})(u^{n+1}_{i-1,j} - u^{n+1}_{i-2,j})}{C_{ff}} \\
+  C_{y1} &= \frac{(u^n_{i-1,j} - u^{n+1}_{i-1,j})(u^{n+1}_{i-1,j} - u^{n+1}_{i-1,j-1})}{C_{ff}} \\
+  C_{y2} &= \frac{(u^n_{i-1,j} - u^{n+1}_{i-1,j})(u^{n+1}_{i-1,j+1} - u^{n+1}_{i-1,j})}{C_{ff}} \\
+  C_{ff} &= (u^{n+1}_{i-1,j} - u^{n+1}_{i-2,j})^2 + (u^{n+1}_{i-1,j} - u^{n+1}_{i-1,j-1})^2 
 \end{align}
-These terms are evaluated at the closest interior point in a manner
-consistent with the time stepping scheme used. The phase velocities are
-limited so that the local Courant-Friedrichs-Lewy (CFL) condition
-is satisfied. They are then
-applied to the boundary point using equation (\ref{eqrk}), again using
-a consistent time stepping scheme. Raymond and Kuo give the form used
-for centered differencing and a leapfrog time step while ROMS uses
-one-sided differences.
+Limits and time filters are also applied to these terms, as above in \ref{S_rad}.
+\begin{equation}
+   u_{i,j} = \frac{u_{i,j} + C_x u_{i-1,j} - C_{y1} (u_{i,j} - u_{i,j-1})}{1 + C_x}
+\label{eqrka}
+\end{equation}
+or
+\begin{equation}
+   u_{i,j} = \frac{u_{i,j} + C_x u_{i-1,j} - C_{y2} (u_{i,j+1} - u_{i,j})}{1 + C_x}
+\label{eqrkb}
+\end{equation}
+depending on the sign of $C_y$. Only the upstream component is used.
 
 The radiation approach is appropriate for waves leaving the domain. A
 check is made to see which way the phase velocity is headed. If it
@@ -261,7 +276,7 @@ is entering the domain, a zero gradient condition is applied unless
 an additional nudging option is also specified as described below.
 
 \subsubsection{Mixed radiation-nudging boundary condition}
-As described in \citep{Marchesiello2001}, ROMS has an option for providing
+As described in \citep{Marchesiello2001}, one has an option for providing
 radiation conditions on outflow and nudging to a known exterior
 value on inflow. This is implemented as a variation on the radiation
 condition, requiring two timescales: the inflow nudging timescale and the
@@ -269,9 +284,28 @@ outflow nudging timescale. These timescales are provided in the input to
 MOM6.
 
 \subsection{Tangential velocity}
+
 \subsubsection{Vorticity}
+
 \subsubsection{Strain}
+
 \subsection{Tracers}
+
+\subsection{Masking}
+It is assumed that any region outside of the open boundary segments
+is all land mask and that no computations should be done on those
+points, such as in the NE corner in Figure \ref{fdomain}. Also, if
+there are masked points along an open boundary segment, the model
+will handle it appropriately. Thus, many domains can simply have
+four open boundary segments, one on each side, with masking of any
+land bits that should happen to cross these segments.
+
+For domains with analytic grids, the easiest way to mask the outside
+areas is to ask the model to mask it for you, using the MASK_OUTSIDE_OBCS
+flag. It will check this in two ways and complain if it finds an
+inconsistency in the resulting land mask. Check the rotated_seamount/faulty
+case for an example.
+
 \section{Test problems}
 \subsection{Barotropic Kelvin wave}
 \subsection{Tracers}
