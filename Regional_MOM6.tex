@@ -200,6 +200,7 @@ with $\beta > 0.05$ often set to 0.2.
 [I don't know why the transport is filtered and not ubt directly.]
 
 \subsection{Baroclinic normal velocity}
+\label{sec_bc_normal}
 \subsubsection{Specified}
 Much like the barotropic option, one simply sets the normal flow
 and the normal transport:
@@ -276,34 +277,70 @@ is entering the domain, a zero gradient condition is applied unless
 an additional nudging option is also specified as described below.
 
 \subsubsection{Mixed radiation-nudging boundary condition}
-As described in \citep{Marchesiello2001}, one has an option for providing
-radiation conditions on outflow and nudging to a known exterior
-value on inflow. This is implemented as a variation on the radiation
-condition, requiring two timescales: the inflow nudging timescale and the
-outflow nudging timescale. These timescales are provided in the input to
-MOM6.
+As described in \citep{Marchesiello2001}, one has an option for
+providing radiation conditions on outflow and nudging to a known
+exterior value on inflow. This is implemented as a variation on the
+radiation condition, requiring two timescales: the inflow nudging
+timescale and the outflow nudging timescale. These timescales are
+provided in the input to MOM6.
 
 \subsection{Tangential velocity}
+The tangential velocity outside of an open boundary is used in both
+the horizontal viscosity and in the Coriolis terms, in both cases as
+the normal gradient of the tangential velocity. There are a number of
+choices for how to handle these terms. One can globally set all of
+the boundary gradient terms to zero or as having no normal gradient,
+independently for the Coriolis term (vorticity) and for the viscosity
+term (strain).
 
-\subsubsection{Vorticity}
-
-\subsubsection{Strain}
+Alternately, one can radiate or specify the boundary tangential
+velocity or its gradient and then compute the boundary strain and
+vorticity from this term.  The tangential velocity and its
+gradient have all the same boundary options as described in
+\ref{sec_bc_normal} for the normal velocity. However, the phase
+speeds computed from the normal velocity are reused here to save
+computational effort (the time filtering has overhead, especially
+with restarts).
 
 \subsection{Tracers}
+The boundary tracers are used by the advection terms which are
+computed with the PLM, PPM, or Huynh schemes (NEED REFERENCES). A
+boundary can have an evolving reservoir for each tracer or a fixed
+value along each boundary segment for each tracer. Two lengthscales
+can be defined, one each for inflow ($L_{in}$) and outflow ($L_{out}$);
+these lengthscales currently apply to all boundary segments. Here,
+inflow is defined as flow from the model into the reservoir, while
+outflow is flow from external data into the reservoir. We have:
+$$
+  u L_{in} = \max(\frac{U_{flux} }{L_{in} dz dy}, 0.0)
+$$
+$$
+  u L_{out} = \min(\frac{U_{flux} }{L_{out} dz dy}, 0.0)
+$$
+\begin{equation}
+  T_{res} = \frac{ T_{res} + dt (u L_{in} T_{in} - u L_{out} T_{out})}
+  {1 + dt (u L_{in} - u L_{out})}
+\end{equation}
+where $U_{flux}$ is the volume flux through a face of area $dz dy$,
+$T_{res}$ is the tracer value in the reservoir, $T_{in}$ is the
+tracer value at the interior point adjacent to the boundary, and
+$T_{out}$ is the tracer value from external data for that boundary.
+
+[WHAT ABOUT TRACER DIFFUSION AT BOUNDARIES??]
 
 \subsection{Masking}
-It is assumed that any region outside of the open boundary segments
-is all land mask and that no computations should be done on those
-points, such as in the NE corner in Figure \ref{fdomain}. Also, if
-there are masked points along an open boundary segment, the model
-will handle it appropriately. Thus, many domains can simply have
-four open boundary segments, one on each side, with masking of any
-land bits that should happen to cross these segments.
+It is required that any region outside of the open boundary segments
+be masked as land and that no computations will be done there, such
+as in the NE corner in Figure \ref{fdomain}. Also, if there are
+masked points along an open boundary segment, the model will handle
+it appropriately. Thus, many domains can simply have four open
+boundary segments, one on each side, with masking of any land bits
+that should happen to cross these segments.
 
 For domains with analytic grids, the easiest way to mask the outside
-areas is to ask the model to mask it for you, using the MASK_OUTSIDE_OBCS
+areas is to ask the model to mask it for you, using the MASK\_OUTSIDE\_OBCS
 flag. It will check this in two ways and complain if it finds an
-inconsistency in the resulting land mask. Check the rotated_seamount/faulty
+inconsistency in the resulting land mask. Check the rotated\_seamount/faulty
 case for an example.
 
 \section{Test problems}
