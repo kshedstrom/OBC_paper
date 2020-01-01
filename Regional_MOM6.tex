@@ -30,8 +30,7 @@ Adding and evaluating open boundary conditions (OBCs) in MOM6.
 The goal of this project is to add open boundary conditions (OBCs)
 to MOM6 such that it can be used as a regional ocean model. The open
 boundaries can be placed anywhere on the model grid between $q$-points
-on the Arakawa C grid, including but not limited to the domain
-boundaries.  In fact, it is possible to create a staircase of open
+on the Arakawa C grid, including but not limited to the boundaries of the computational domain. In fact, it is possible to create a staircase of open
 boundary segments at an angle through the domain, such as seen in
 Figure \ref{fdomain}. In order to support this feature, it is
 necessary that nothing outside of the open boundary be used in the
@@ -350,6 +349,55 @@ case for an example.
 \section{Conclusions}
 \section{Discussion}
 
+\section{Equations of motion}
+
+\begin{alignat}{2}
+\rho_0 \left( \frac{\partial \mathbf{u}}{\partial t} + \frac{( f + \zeta )}{h} \, \hat{\mathbf{z}} \wedge h \, \mathbf{u} + { \color{red} \dot{r} \, \frac{\partial \mathbf{u}}{\partial r} } + \nabla_r K \right) &= -\nabla_r \, p - \rho \nabla_r \, \Phi + \nabla_r \cdot \boldsymbol{\mathcal{F}}
+&\mbox{momentum} \label{eq:h-horz-momentum} \\
+\rho \, \delta_r \Phi + \delta_r p &= 0
+&\mbox{hydrostatic} \label{eq:h-hydrostatic-equation} \\
+\frac{\partial h}{\partial t} + \nabla_r \cdot \left( h \, \mathbf{u} \right) + {\color{red} \delta_r ( z_r \dot{r} ) } &= 0
+&\mbox{thickness} \label{eq:h-thickness-equation} \\
+\frac{\partial ( \theta \, h )}{\partial t} + \nabla_r \cdot \left( \theta h \, \mathbf{u} \right) + {\color{red} \delta_r ( \theta \, z_r \dot{r} ) } &=  h \boldsymbol{\mathcal{N}}_\theta^\gamma - \delta_r J_\theta^{(z)}
+&\mbox{potential temp} \label{eq:h-temperature-equation} \\
+\frac{\partial ( S \, h )}{\partial t} + \nabla_r \cdot \left( S \, h \, \mathbf{u} \right) + {\color{red} \delta_r ( S \, z_r \dot{r} ) } &= h \boldsymbol{\mathcal{N}}_S^\gamma - \delta_r J_S^{(z)}
+&\mbox{salinity} \label{eq:h-salinity-equation} \\
+\rho &= \rho\left( S, \theta, -g \rho_0 z(r) \right)
+&\mbox{equation of state,}
+\label{eq:h-equation-of-state}
+\end{alignat}
+
+The primary finite volume cells are labelled with half-integers, i.e. $i \in \{\frac{1}{2},\frac{3}{2},\ldots,N_i-\frac{1}{2}\}$, The equations solved in these cells are:
+$j \in \{\frac{1}{2},\frac{3}{2},\ldots,N_j-\frac{1}{2}\}$:
+\begin{align}
+\rho \, \delta_r \Phi + \delta_r p &= 0
+\\
+\frac{\partial h}{\partial t} + \delta_x U + \delta_y V &= 0
+\\
+\frac{\partial ( \theta \, h )}{\partial t} + \delta_x \left( \overline{\theta}^i U \right) + \delta_y \left( \overline{\theta}^j V \right) &=  h \boldsymbol{\mathcal{N}}_\theta^\gamma - \delta_k J_\theta^{(z)}
+\\
+\frac{\partial ( S \, h )}{\partial t} + \delta_x \left( \overline{S}^i U \right) + \delta_y \left( \overline{S}^j V \right) &= h \boldsymbol{\mathcal{N}}_S^\gamma - \delta_k J_S^{(z)}
+\end{align}
+The quantities $U$ and $V$ are thickness fluxes which must be identically evaluated in the continuity and tracer equations for consistency. They are notionally discretized as $U=\overline{h}^iu$ and $V=\overline{h}^jv$ but where the $h$ in these expressions is not a simple interpolation ($^{\overline{\,\,\,}i}$) but an upstream average and calculated with a positive definite reconstruction or flux limiter. In the primary cell equations, the horizontal fluxes naturally fall on the cell edges and thus require boundary conditions on open boundaries. Similarly the $\overline{S}^i$ in $\overline{S}^iU$ is upstreamed and might be flux limited in some way. The specification of the normal thickness flux at open boundaries will be mentioned below. The specification of the scalar being transported, whether $h$, $\theta$ or $S$, is usually flow dependent. For outward flow, upstreaming involves boundary values only through the reconstruction scheme. For inward flow, the scalar values are usually specified and not a function of the interior state.
+
+The i-direction momentum equation for component $u$ is solved on the edge with integer $i$ and half-integer $j$ labels, i.e. $i \in \{0,1,\ldots,N_i\}$, $j \in \{\frac{1}{2},\frac{3}{2},\ldots,N_j-\frac{1}{2}\}$:
+\begin{align}
+\rho_0 \left( \frac{\partial u}{\partial t}
+- \overline{ q \overline{V}^i }^j + \delta_x K \right)
+&= - \delta_x p - \rho \delta_x \Phi
++ \delta_x {F}^{(xx)}  + \delta_y {F}^{(xy)} + \partial_r {F}^{(xz)}
+\end{align}
+
+The j-direction momentum equations for component $v$ is solved on the edge with $i \in \{\frac{1}{2},\frac{3}{2},\ldots,N_i-\frac{1}{2}\}$, $j \in \{0,1,\ldots,N_j\}$:
+\begin{align}
+\rho_0 \left( \frac{\partial v}{\partial t}
++ \overline{ q \overline{U}^j }^i + \delta_y K \right)
+&= -\delta_y p - \rho \delta_y \Phi
++ \delta_x {F}^{(xy)}  + \delta_y {F}^{(yy)} + \partial_r {F}^{(yz)}
+\end{align}
+
+At open boundaries, the momentum equation for the normal flow is replaced by a new equation for the normal flow, rather than discretizing the momentum equation on the boundary.
 
 \bibliography{ocean}
 \end{document}  
+
